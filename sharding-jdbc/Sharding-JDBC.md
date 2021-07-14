@@ -38,16 +38,16 @@ github：https://github.com/apache/shardingsphere
   指分片规则一致的主表和子表。例如：`t_order` 表和 `t_order_item` 表，均按照 `order_id` 分片，则此两张表互为绑定表关系。绑定表之间的多表关联查询不会出现笛卡尔积关联，关联查询效率将大大提升。举例说明，如果 SQL 为：
 
   ```sql
-  SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id WHERE o.order_id in (10, 11);
+  SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id = i.order_id WHERE o.order_id in (10, 11);
   ```
 
   在不配置绑定表关系时，假设分片键 `order_id` 将数值 10 路由至第 0 片，将数值 11 路由至第 1 片，那么路由后的 SQL 应该为 4 条，它们呈现为笛卡尔积：
 
   ```sql
-  SELECT i.* FROM t_order_0 o JOIN t_order_item_0 i ON o.order_id=i.order_id WHERE o.order_id in (10, 11);
-  SELECT i.* FROM t_order_0 o JOIN t_order_item_1 i ON o.order_id=i.order_id WHERE o.order_id in (10, 11);
-  SELECT i.* FROM t_order_1 o JOIN t_order_item_0 i ON o.order_id=i.order_id WHERE o.order_id in (10, 11);
-  SELECT i.* FROM t_order_1 o JOIN t_order_item_1 i ON o.order_id=i.order_id WHERE o.order_id in (10, 11);
+  SELECT i.* FROM t_order_0 o JOIN t_order_item_0 i ON o.order_id = i.order_id WHERE o.order_id in (10, 11);
+  SELECT i.* FROM t_order_0 o JOIN t_order_item_1 i ON o.order_id = i.order_id WHERE o.order_id in (10, 11);
+  SELECT i.* FROM t_order_1 o JOIN t_order_item_0 i ON o.order_id = i.order_id WHERE o.order_id in (10, 11);
+  SELECT i.* FROM t_order_1 o JOIN t_order_item_1 i ON o.order_id = i.order_id WHERE o.order_id in (10, 11);
   ```
 
   在配置绑定表关系后，路由的 SQL 应该为 2 条：
@@ -175,8 +175,8 @@ shardingRule:
 DataSource dataSource = YamlShardingDataSourceFactory.createDataSource(yamlFile);
 String sql = "SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id WHERE o.user_id=? AND o.order_id=?";
 try (
-        Connection conn = dataSource.getConnection();
-        PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
+  	Connection conn = dataSource.getConnection();
+    PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
     preparedStatement.setInt(1, 10);
     preparedStatement.setInt(2, 1001);
     try (ResultSet rs = preparedStatement.executeQuery()) {
@@ -275,8 +275,8 @@ props:
 DataSource dataSource = YamlMasterSlaveDataSourceFactory.createDataSource(yamlFile);
 String sql = "SELECT i.* FROM t_order o JOIN t_order_item i ON o.order_id=i.order_id WHERE o.user_id=? AND o.order_id=?";
 try (
-        Connection conn = dataSource.getConnection();
-        PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
+    Connection conn = dataSource.getConnection();
+    PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
     preparedStatement.setInt(1, 10);
     preparedStatement.setInt(2, 1001);
     try (ResultSet rs = preparedStatement.executeQuery()) {
@@ -292,7 +292,7 @@ try (
 
 在 JDBC API 中使用，我们可以直接创建数据源。 
 
-如果在 Spring 中使用，我们自定义的数据源怎么定义使用呢？因为数据源是容器管 理的，所以需要通过注解或者 xml 配置文件注入。
+如果在 Spring 中使用，我们自定义的数据源怎么定义使用呢？因为数据源是容器管理的，所以需要通过注解或者 xml 配置文件注入。
 
 
 
@@ -302,7 +302,7 @@ try (
 
 当然，流程是先由Sharding-JDBC 定义，再交给 Druid 放进池子里，再交给 MyBatis， 最后再注入到 Spring。最外层是 Spring，因为代码是从 Spring 开始调用的。 
 
-第二个，因为 Sharding-JDBC 是工作在客户端的，所以我们要在客户端配置分库分 表的策略。跟 Mycat 不一样的是，Sharding-JDBC 没有内置各种分片策略和算法，需要 我们通过表达式或者自定义的配置文件实现。
+第二个，因为 Sharding-JDBC 是工作在客户端的，所以我们要在客户端配置分库分表的策略。跟 **Mycat 不一样的是，Sharding-JDBC 没有内置各种分片策略和算法，需要我们通过表达式或者自定义的配置文件实现。**
 
 总体上，需要配置的就是这两个，数据源和分片策略。 
 
@@ -371,21 +371,21 @@ public class DataSourceConfig {
         dataSource2.setPassword("123456");
         dataSourceMap.put("ds1", dataSource2);
 
-        // 配置Order表规则
-        TableRuleConfiguration orderTableRuleConfig = new TableRuleConfiguration("user_info", "ds${0..1}.user_info");
+        // 配置表规则
+        TableRuleConfiguration userInfoTableRuleConfig = new TableRuleConfiguration("user_info", "ds${0..1}.user_info");
 
         // 分表策略，使用 Standard 自定义实现，这里没有分表，表名固定为user_info
         StandardShardingStrategyConfiguration tableInlineStrategy =
                 new StandardShardingStrategyConfiguration("user_id", new TblPreShardAlgo(), new TblRangeShardAlgo());
-        orderTableRuleConfig.setTableShardingStrategyConfig(tableInlineStrategy);
+        userInfoTableRuleConfig.setTableShardingStrategyConfig(tableInlineStrategy);
 
         // 分库策略，使用 Standard 自定义实现
         StandardShardingStrategyConfiguration dataBaseInlineStrategy =new StandardShardingStrategyConfiguration("user_id", new DBShardAlgo());
-        orderTableRuleConfig.setDatabaseShardingStrategyConfig(dataBaseInlineStrategy);
+        userInfoTableRuleConfig.setDatabaseShardingStrategyConfig(dataBaseInlineStrategy);
 
         // 添加表配置
         ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
-        shardingRuleConfig.getTableRuleConfigs().add(orderTableRuleConfig);
+        shardingRuleConfig.getTableRuleConfigs().add(userInfoTableRuleConfig);
 
         // 获取数据源对象
         DataSource dataSource = ShardingDataSourceFactory.createDataSource(dataSourceMap, shardingRuleConfig, new Properties());
@@ -400,7 +400,7 @@ public class DataSourceConfig {
 }
 ```
 
-DBShardAlgo.java
+DBShardAlgo.java. **分库策略**
 
 ```java
 import org.apache.shardingsphere.api.sharding.standard.PreciseShardingAlgorithm;
@@ -427,7 +427,7 @@ public class DBShardAlgo implements PreciseShardingAlgorithm<Long> {
 }
 ```
 
-TblPreShardAlgo.java
+TblPreShardAlgo.java   **分表策略**
 
 ```java
 import org.apache.shardingsphere.api.sharding.standard.PreciseShardingAlgorithm;
@@ -449,7 +449,7 @@ public class TblPreShardAlgo implements PreciseShardingAlgorithm<Long> {
 }
 ```
 
-TblRangeShardAlgo.java
+TblRangeShardAlgo.java  **范围查询用到的分片算法**
 
 ```java
 import com.google.common.collect.Range;
@@ -464,8 +464,8 @@ import java.util.LinkedHashSet;
 public class TblRangeShardAlgo implements RangeShardingAlgorithm<Long> {
     @Override
     public Collection<String> doSharding(Collection<String> availableTargetNames, RangeShardingValue<Long> rangeShardingValue) {
-        System.out.println("范围-*-*-*-*-*-*-*-*-*-*-*---------------"+availableTargetNames);
-        System.out.println("范围-*-*-*-*-*-*-*-*-*-*-*---------------"+rangeShardingValue);
+        System.out.println("范围-*-*-*-*-*-*-*-*-*-*-*---------------" + availableTargetNames);
+        System.out.println("范围-*-*-*-*-*-*-*-*-*-*-*---------------" + rangeShardingValue);
         Collection<String> collect = new LinkedHashSet<>();
         Range<Long> valueRange = rangeShardingValue.getValueRange();
         for (Long i = valueRange.lowerEndpoint(); i <= valueRange.upperEndpoint(); i++) {
@@ -480,7 +480,7 @@ public class TblRangeShardAlgo implements RangeShardingAlgorithm<Long> {
 }
 ```
 
-把数据源和分片策略都写在 Java Config 中，加上注解。它的特点是非常灵 活，我们可以实现各种定义的分片策略。但是缺点是，如果把数据源、策略都配置在 Java Config 中，就出现了硬编码，在修改的时候比较麻烦。
+把数据源和分片策略都写在 Java Config 中，加上注解。它的特点是非常灵活，我们可以实现各种定义的分片策略。但是缺点是，如果把数据源、策略都配置在 Java Config 中，就出现了硬编码，在修改的时候比较麻烦。
 
 #### 2.3.2SpringBoot配置
 
@@ -661,7 +661,7 @@ public class TblRangeShardAlgo implements RangeShardingAlgorithm<Long> {
 
 是直接使用 Spring Boot 的 application.properties 来配置，这个要基于 starter 模块。 
 
-把数据源和分库分表策略都配置在 properties 文件中。这种方式配置比较简单，但 是不能实现复杂的分片策略，不够灵活。
+把数据源和分库分表策略都配置在 properties 文件中。这种方式配置比较简单，但是不能实现复杂的分片策略，不够灵活。
 
 #### 2.3.3yml配置
 
@@ -762,7 +762,7 @@ spring:
 
 
 
-使用 Spring Boot 的 yml 配置（shardingjdbc.yml），也要依赖 starter模块。当然我们也可以结合不同的配置方式，比如把分片策略放在 JavaConfig 中，数据 源配置在 yml 中或 properties 中。
+使用 Spring Boot 的 yml 配置（shardingjdbc.yml），也要依赖 starter模块。当然我们也可以结合不同的配置方式，比如把分片策略放在 JavaConfig 中，数据源配置在 yml 中或 properties 中。
 
 这里面配置了读写分离，确认一下查询是否发生在 slave 上。
 
@@ -781,7 +781,7 @@ show slave status\G
 
 两个库里面都是相同的4张表：user_info、t_order、t_order_item、t_config
 
-当 我 们 使 用 了 Sharding-JDBC 的 数 据 源 以 后 ， 对 于 数 据 的 操 作 会 交 给 Sharding-JDBC 的代码来处理。 
+当我们使用了Sharding-JDBC的数据源以后，对于数据的操作会交给Sharding-JDBC的代码来处理。 
 
 先来给大家普及一下，分片策略从维度上分成两种，一种是分库，一种是分表。 
 
@@ -801,11 +801,11 @@ spring.shardingsphere.sharding.tables.user_info.actual-data-nodes=ds$->{0..1}.us
 
 #### 2.4.1取模分片
 
-首先我们来验证一下user_info表的取模分片(modulo['mod jul eu] ) 。
+首先我们来验证一下user_info表的取模分片。
 
 我们根据userid， 把用户数据划分到两个数据节点上。
 
-在本地创建两个数据库ds 0和ds 1， 都userinfo创建表：
+在本地创建两个数据库`ds 0`和`ds 1`， 都创建`user_info`表：
 
 ```sql
 CREATE TABLE `user_info` (
@@ -834,7 +834,7 @@ spring.shardingsphere.sharding.tables.user_info.databaseStrategy.inline.algorith
 
 首先两个数据库的user_info表里面没有任何数据。
 
-在单元测量测试类UserSharding Test里面， 执行insert()， 调用Mapper接口循环插入100条数据。
+在单元测量测试类UserShardingTest里面， 执行insert()， 调用Mapper接口循环插入100条数据。
 
 我们看一下插入的结果。user_id为偶数的数据， 都落到了第一个库。user_id为奇数的数据，都落到了第二个库。
 
@@ -879,7 +879,7 @@ spring.shardingsphere.sharding.binding-tables[0]=t_order,t_order_item
 
 除了定义分库和分表算法之外， 我们还需要多定义一个binding-tables。
 
-绑定表不使用分片键查询时，会出现笛卡尔积。
+**绑定表不使用分片键查询时，会出现笛卡尔积。**
 
 什么叫笛卡尔积?假如有2个数据库，两张表要相互关联，两张表又各有分表，那么SQL的执行路径就是2*2*2=8种。
 
@@ -895,7 +895,7 @@ spring.shardingsphere.sharding.binding-tables[0]=t_order,t_order_item
 
 (mycat不支持这种二维的路由， 要么是分库， 要么是分表)
 
-我们去看一下测试的代码OrderS hardingTest和OrderltemShardingTest。
+我们去看一下测试的代码OrderShardingTest和OrderltemShardingTest。
 
 先插入主表的数据，再插入子表的数据。
 
@@ -911,17 +911,17 @@ spring.shardingsphere.sharding.broadcast-tables=t_config
 
 我们用broadcast-tables来定义。
 
-ConfigS harding Test java
+ConfigShardingTest java
 
-插入和更新都会在所有节点上执行，查询呢?随机负载。
+插入和更新都会在所有节点上执行，查询就随机负载。
 
 
 
 #### 2.4.4读写分离
 
-参考spring-boot-s harding-jdbc
+参考spring-boot-sharding-jdbc
 
-在com.qing shan.jdbc.Master Slave Test里面已经验证过了。
+在com.qingshan.jdbc.MasterSlaveTest里面已经验证过了。
 
 ```yaml
 master-slave-rules:
@@ -933,9 +933,9 @@ master-slave-rules:
     slave-data-source-names: slave1
 ```
 
-OK， 这个就是S harding-JDBC里面几种主要的表类型的分片验证。
+OK， 这个就是Sharding-JDBC里面几种主要的表类型的分片验证。
 
-如果我们需要更加复杂的分片策略， properties文件中行内表达式的这种方式肯定满足不了。实际上properties里面的分片策略可以指定， 比如user_info表的分库和分表策略。
+如果我们需要更加复杂的分片策略， properties文件中行内表达式的这种方式肯定满足不了。实际上properties里面的分片策略可以指定， 比如`user_info`表的分库和分表策略。
 
 ```properties
 spring.shardingsphere.sharding.tables.user_info.tableStrategy.standard.shardingColumn=
@@ -944,19 +944,19 @@ spring.shardingsphere.sharding.tables.user_info.tableStrategy.standard.rangeAlgo
 ```
 
 
-这个时候我们需要了解S harding-JDBC中几种不同的分片策略。
+这个时候我们需要了解Sharding-JDBC中几种不同的分片策略。
 
 ## 3.分片策略详解
 
 https://shardingsphere.apache.org/document/current/cn/features/sharding/concept/sharding/
 
-工程：gu pao-shard-java config
+工程：gupao-shard-java config
 
 Sharding-JDBC中的分片策略有两个维度：分库(数据源分片) 策略和分表策略。
 
 分库策略表示数据路由到的物理目标数据源，分表分片策略表示数据被路由到的目标表。分表策略是依赖于分库策略的，也就是说要先分库再分表，当然也可以不分库只分表。
 
-跟My cat不一样， S harding-JDBC没有提供内置的分片算法， 而是通过抽象成接口，让开发者自行实现，这样可以根据业务实际情况灵活地实现分片。
+跟Mycat不一样， Sharding-JDBC没有提供内置的分片算法， 而是通过抽象成接口，让开发者自行实现，这样可以根据业务实际情况灵活地实现分片。
 
 
 
@@ -993,7 +993,7 @@ https://shardingsphere.apache.org/document/current/cn/features/sharding/concept/
 
 #### 3.1.2标准分片策略
 
-对应StandardS harding Strategy类。
+对应StandardShardingStrategy类。
 
 标准分片策略只支持单分片键， 提供了提供PreciseShardingAlgorithm和RangeShardingAlgorithm两个分片算法， 分别对应于SQL语句中的=，IN和BETWEEN AND。
 
@@ -1011,7 +1011,7 @@ https://shardingsphere.apache.org/document/current/cn/features/sharding/concept/
 
 https://shardingsphere.apache.org/document/current/cn/user-manual/shardingsphere-idbc/usage/sharding/hint/
 
-对应HintShardingStrategy。通过Hint而非SQL解析的方式分片的策略。有点类似于My cat的指定分片注解。
+对应HintShardingStrategy。通过Hint而非SQL解析的方式分片的策略。有点类似于Mycat的指定分片注解。
 
 #### 3.1.5不分片策略
 
@@ -1084,7 +1084,7 @@ https://shardingsphere.apache.org/document/legacy/4.x/document/cn/overview/
 
 DubboX, Elastic-job也是当当开源出来的产品。
 
-2018年5月， 因为增加了Proxy的版本和S harding-Sidecar(尚未发布)，Sharding-JDBC更名为ShardingSphere， 从一个客户端的组件变成了一个套件。
+2018年5月， 因为增加了Proxy的版本和Sharding-Sidecar(尚未发布)，Sharding-JDBC更名为ShardingSphere， 从一个客户端的组件变成了一个套件。
 
 2018年11月， Sharding-Sphere正式进入Apache基金会孵化器， 这也是对Sharding-Sphere的质量和影响力的认可
 
@@ -1264,13 +1264,13 @@ ShardingJDBC在执行过程中， 主要是三个环节， 一个是解析配置
 
 ### 1.四大核心对象
 
-我们说S harding-JDBC是一个增强版的JDBC驱动。那么， JDBC的四大核心对象，或者说最重要的4个接口是什么?
+我们说Sharding-JDBC是一个增强版的JDBC驱动。那么， JDBC的四大核心对象，或者说最重要的4个接口是什么?
 
 DataSource、Connection、Statement(PS) 、ResulstSet。
 
 Sharding-JDBC实现了这四个核心接口， 在类名前面加上了Sharding。
 
-Sharding DataSource、Sharding Connection、S harding Statement(PS)、ShardingResulstSet。
+ShardingDataSource、ShardingConnection、ShardingStatement(PS)、ShardingResulstSet。
 
 如果要在Java代码操作数据库的过程里面， 实现各种各样的逻辑， 肯定是要从数据源就开始替换成自己的实现。当然，因为在配置文件里面配置了数据源，启动的时候就创建好了。
 
@@ -1278,11 +1278,11 @@ Sharding DataSource、Sharding Connection、S harding Statement(PS)、ShardingRe
 
 ### 2.MyBatis数据源获取
 
-Java API(com.qing shan.jdbc.Shard JDBC Test) 我们就不说了。
+Java API(com.qing shan.jdbc.ShardJDBCTest) 我们就不说了。
 
-我们以整合了MyBatis的项目为例。MyBatis封装了JDBC的核心对象， 那么在MyBatis操作JDBC四大对象的时候， 就要替换成S harding-JDBC的四大对象。
+我们以整合了MyBatis的项目为例。MyBatis封装了JDBC的核心对象， 那么在MyBatis操作JDBC四大对象的时候， 就要替换成Sharding-JDBC的四大对象。
 
-我们的查询方法最终会走到SimpleExecutor的doQuery) 方法， 这个是我们的前提知识。
+我们的查询方法最终会走到SimpleExecutor的doQuery() 方法， 这个是我们的前提知识。
 spring-boot-sharding-jdbc：com.qingshan.ShardTableTest
 
 doQuery(方法里面调用了prepareStatement() 创建连接，通过ShardingDataSource返回了一个连接(衔接上了) 。
@@ -1290,16 +1290,16 @@ doQuery(方法里面调用了prepareStatement() 创建连接，通过ShardingDat
 我们直接在prepareStatement() 打断点。
 
 ```java
-private Statement prepare Statement(Statement Handler handler， Log statement Log) throws SQLException{
-  Statement stmt；
-  Connection connection=getConnection(statement Log) ；
-  stmt=handler.prepare(connection， transaction.get Timeout() ) ；
-  handler.parameterize(stmt) ；
-  return stmt；
+private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException{
+  Statement stmt;
+  Connection connection = getConnection(statementLog);
+  stmt = handler.prepare(connection, transaction.getTimeout());
+  handler.parameterize(stmt);
+  return stmt;
 }
 ```
 
-它经过以下两个方法， 返回了一个S harding Connection。
+它经过以下两个方法， 返回了一个ShardingConnection。
 
 ```java
 DataSourceUtil.fetchConnection();
@@ -1352,7 +1352,7 @@ RouteContext routeContext = this.executeRoute(sql, clonedParameters);
 
 执行路由
 
-```
+```java
 private Route Context execute Route(String sql, List<Object> clonedParameters) {
   this.registerRouteDecorator();
   return this.route(this.router, sql, clonedParameters);
